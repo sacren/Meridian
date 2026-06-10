@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Policies\CampaignPolicy;
 use Database\Factories\CampaignFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -13,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * by campaign membership + role.
  */
 #[Fillable(['name', 'slug'])]
+#[UsePolicy(CampaignPolicy::class)]
 class Campaign extends Model
 {
     /** @use HasFactory<CampaignFactory> */
