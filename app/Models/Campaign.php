@@ -22,6 +22,14 @@ class Campaign extends Model
     use HasFactory;
 
     /**
+     * Bind the {campaign} route segment by its slug rather than its id.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    /**
      * The users who are members of this campaign, with their per-campaign role.
      *
      * @return BelongsToMany<User, $this>
