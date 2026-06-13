@@ -15,6 +15,26 @@ use Inertia\Response;
 class CampaignController extends Controller
 {
     /**
+     * List the campaigns the authenticated user belongs to, with their role in each.
+     */
+    public function index(Request $request): Response
+    {
+        $campaigns = $request->user()->campaigns()
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Campaign $campaign): array => [
+                'id' => $campaign->id,
+                'name' => $campaign->name,
+                'slug' => $campaign->slug,
+                'role' => $campaign->pivot->role,
+            ]);
+
+        return Inertia::render('Campaigns/Index', [
+            'campaigns' => $campaigns,
+        ]);
+    }
+
+    /**
      * Create a campaign and land the creator inside it as its owner.
      *
      * The campaign and its sole owner pivot row are written in one transaction, so the
