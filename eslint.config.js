@@ -84,6 +84,10 @@ export default defineConfigWithVueTs(
             'resources/js/components/ui/*',
             'resources/js/routes/**',
             'resources/js/wayfinder/**',
+            // Cypress E2E is linted on the desktop where Cypress + eslint-plugin-cypress
+            // are installed; the server toolchain has neither, so skip it here.
+            'cypress/**',
+            'cypress.config.ts',
         ],
     },
     prettier,

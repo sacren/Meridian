@@ -26,10 +26,15 @@ defineOptions({
 <template>
     <Head :title="campaign.name" />
 
-    <div class="flex h-full flex-1 flex-col gap-6 p-4">
+    <div
+        class="flex h-full flex-1 flex-col gap-6 p-4"
+        data-test="campaign-dashboard"
+    >
         <div class="flex items-center gap-3">
             <Heading :title="campaign.name" />
-            <Badge variant="secondary">{{ role }}</Badge>
+            <Badge variant="secondary" data-test="campaign-role">{{
+                role
+            }}</Badge>
         </div>
 
         <Card class="grid auto-rows-min gap-4 p-6 md:grid-cols-3">

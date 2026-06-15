@@ -83,11 +83,16 @@ defineOptions({
                         required
                         autocomplete="off"
                         placeholder="Campaign name"
+                        data-test="campaign-name-input"
                     />
                     <InputError :message="errors.name" />
                 </div>
 
-                <Button type="submit" :disabled="processing">
+                <Button
+                    type="submit"
+                    :disabled="processing"
+                    data-test="create-campaign-button"
+                >
                     Create campaign
                 </Button>
             </Form>
