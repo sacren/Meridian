@@ -32,6 +32,24 @@ test('creating a campaign requires a name', function () {
     expect(Campaign::count())->toBe(0);
 });
 
+test('a campaign name may be 255 characters but no more', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->from(route('dashboard'))
+        ->post(route('campaigns.store'), ['name' => str_repeat('a', 256)])
+        ->assertInvalid(['name'])
+        ->assertRedirect(route('dashboard'));
+
+    expect(Campaign::count())->toBe(0);
+
+    $name = str_repeat('a', 255);
+
+    $this->actingAs($user)->post(route('campaigns.store'), ['name' => $name]);
+
+    expect(Campaign::firstWhere('name', $name))->not->toBeNull();
+});
+
 test('campaigns created with the same name get distinct slugs', function () {
     $user = User::factory()->create();
 

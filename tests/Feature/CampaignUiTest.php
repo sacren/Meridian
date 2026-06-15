@@ -20,10 +20,26 @@ test('the index lists only the campaigns the user belongs to, ordered by name', 
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('Campaigns/Index')
             ->has('campaigns', 2)
+            ->where('campaigns.0.id', $alsoMine->id)
             ->where('campaigns.0.name', 'Also Mine')
+            ->where('campaigns.0.slug', $alsoMine->slug)
             ->where('campaigns.0.role', Role::Viewer->value)
+            ->where('campaigns.1.id', $mine->id)
             ->where('campaigns.1.name', 'Mine')
+            ->where('campaigns.1.slug', $mine->slug)
             ->where('campaigns.1.role', Role::Owner->value)
+        );
+});
+
+test('the index lists no campaigns when the user belongs to none', function () {
+    $user = User::factory()->create();
+    Campaign::factory()->create(); // exists, but the user is not a member
+
+    $this->actingAs($user)
+        ->get(route('campaigns.index'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Campaigns/Index')
+            ->has('campaigns', 0)
         );
 });
 
