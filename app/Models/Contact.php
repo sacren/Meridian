@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Policies\ContactPolicy;
 use Database\Factories\ContactFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * "attributes" to avoid colliding with Eloquent's internal $attributes.
  */
 #[Fillable(['name', 'email', 'phone', 'custom_fields'])]
+#[UsePolicy(ContactPolicy::class)]
 class Contact extends Model
 {
     /** @use HasFactory<ContactFactory> */
