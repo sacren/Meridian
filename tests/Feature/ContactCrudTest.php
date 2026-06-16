@@ -29,8 +29,7 @@ test('a member can list only the contacts of the route campaign', function () {
     $this->actingAs($viewer)
         ->get(route('campaigns.contacts.index', $campaign))
         ->assertInertia(fn (AssertableInertia $page) => $page
-            // The Vue page itself is built in C4; here we only assert the contract.
-            ->component('Contacts/Index', false)
+            ->component('Contacts/Index')
             ->has('contacts.data', 3)
         );
 });
