@@ -51,4 +51,14 @@ class Campaign extends Model
     {
         return $this->hasMany(Contact::class);
     }
+
+    /**
+     * The segments that belong to this campaign.
+     *
+     * @return HasMany<Segment, $this>
+     */
+    public function segments(): HasMany
+    {
+        return $this->hasMany(Segment::class);
+    }
 }
