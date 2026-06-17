@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import Heading from '@/components/Heading.vue';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { index } from '@/routes/campaigns';
+import { index as contactsIndex } from '@/routes/campaigns/contacts';
 
 type Campaign = {
     id: number;
@@ -51,5 +52,31 @@ defineOptions({
                 <p class="font-medium">{{ role }}</p>
             </div>
         </Card>
+
+        <section class="space-y-3">
+            <Heading variant="small" title="Manage" />
+
+            <!--
+                Destinations stack vertically; each is a self-contained
+                card-as-link. Future sections (Segments, Blasts, Members)
+                drop in here as sibling <Link> cards.
+            -->
+            <div class="flex max-w-md flex-col gap-4">
+                <Link
+                    :href="contactsIndex(campaign.slug)"
+                    class="block"
+                    data-test="contacts-link"
+                >
+                    <Card
+                        class="flex flex-col gap-1 p-4 transition-colors hover:border-primary"
+                    >
+                        <span class="font-medium">Contacts</span>
+                        <span class="text-sm text-muted-foreground">
+                            View and manage this campaign's contacts.
+                        </span>
+                    </Card>
+                </Link>
+            </div>
+        </section>
     </div>
 </template>
