@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\SegmentController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -29,6 +30,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::delete('campaigns/{campaign}/contacts/{contact}', [ContactController::class, 'destroy'])
             ->name('campaigns.contacts.destroy');
+
+        Route::get('campaigns/{campaign}/segments', [SegmentController::class, 'index'])
+            ->name('campaigns.segments.index');
+
+        Route::post('campaigns/{campaign}/segments', [SegmentController::class, 'store'])
+            ->name('campaigns.segments.store');
+
+        Route::post('campaigns/{campaign}/segments/preview', [SegmentController::class, 'preview'])
+            ->name('campaigns.segments.preview');
+
+        Route::put('campaigns/{campaign}/segments/{segment}', [SegmentController::class, 'update'])
+            ->name('campaigns.segments.update');
+
+        Route::delete('campaigns/{campaign}/segments/{segment}', [SegmentController::class, 'destroy'])
+            ->name('campaigns.segments.destroy');
     });
 });
 
