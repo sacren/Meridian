@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Policies\SegmentPolicy;
 use Database\Factories\SegmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * evaluator (S2), so here it is simply cast to an array.
  */
 #[Fillable(['name', 'criteria'])]
+#[UsePolicy(SegmentPolicy::class)]
 class Segment extends Model
 {
     /** @use HasFactory<SegmentFactory> */
