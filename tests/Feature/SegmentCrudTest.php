@@ -45,7 +45,7 @@ test('a member can list only the segments of the route campaign', function () {
     $this->actingAs($viewer)
         ->get(route('campaigns.segments.index', $campaign))
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('Segments/Index', false)
+            ->component('Segments/Index')
             ->has('segments.data', 2)
         );
 });
@@ -227,7 +227,7 @@ test('preview returns the contacts matched by the posted criteria', function () 
     $this->actingAs($staffer)
         ->post(route('campaigns.segments.preview', $campaign), ['criteria' => emailContains('@gmail.com')])
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('Segments/Index', false)
+            ->component('Segments/Index')
             ->where('preview.count', 2)
             ->has('preview.contacts', 2)
         );
