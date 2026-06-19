@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { index } from '@/routes/campaigns';
 import { index as contactsIndex } from '@/routes/campaigns/contacts';
+import { index as segmentsIndex } from '@/routes/campaigns/segments';
 
 type Campaign = {
     id: number;
@@ -73,6 +74,21 @@ defineOptions({
                         <span class="font-medium">Contacts</span>
                         <span class="text-sm text-muted-foreground">
                             View and manage this campaign's contacts.
+                        </span>
+                    </Card>
+                </Link>
+
+                <Link
+                    :href="segmentsIndex(campaign.slug)"
+                    class="block"
+                    data-test="segments-link"
+                >
+                    <Card
+                        class="flex flex-col gap-1 p-4 transition-colors hover:border-primary"
+                    >
+                        <span class="font-medium">Segments</span>
+                        <span class="text-sm text-muted-foreground">
+                            Build and preview saved contact filters.
                         </span>
                     </Card>
                 </Link>
