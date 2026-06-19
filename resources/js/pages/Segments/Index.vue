@@ -94,10 +94,18 @@ const form = useForm<{ name: string; criteria: Criteria }>({
 
 const isEditing = computed(() => editingId.value !== null);
 
+// The preview result is held locally rather than read straight from the prop, so
+// it can be cleared on any client-only form transition (cancel, edit, reset).
+// Otherwise a stale preview would linger, no longer matching the builder.
+const previewResult = ref<{ count: number; contacts: PreviewContact[] } | null>(
+    props.preview ?? null,
+);
+
 function resetForm(): void {
     editingId.value = null;
     form.reset();
     form.clearErrors();
+    previewResult.value = null;
 }
 
 function startCreate(): void {
@@ -112,6 +120,7 @@ function startEdit(segment: Segment): void {
         combinator: segment.criteria?.combinator ?? 'and',
         rules: (segment.criteria?.rules ?? []).map((rule) => ({ ...rule })),
     };
+    previewResult.value = null;
 }
 
 function addRule(): void {
@@ -149,7 +158,14 @@ function runPreview(): void {
     router.post(
         SegmentController.preview.url(props.campaign.slug),
         { criteria: form.criteria },
-        { only: ['preview'], preserveState: true, preserveScroll: true },
+        {
+            only: ['preview'],
+            preserveState: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                previewResult.value = props.preview ?? null;
+            },
+        },
     );
 }
 
@@ -376,15 +392,18 @@ function ruleSummary(segment: Segment): string {
             </form>
 
             <div
-                v-if="preview"
+                v-if="previewResult"
                 class="rounded-md border bg-muted/30 p-3"
                 data-test="preview-result"
             >
                 <p class="text-sm font-medium">
-                    {{ preview.count }} contact(s) match.
+                    {{ previewResult.count }} contact(s) match.
                 </p>
                 <ul class="mt-2 space-y-1 text-sm text-muted-foreground">
-                    <li v-for="contact in preview.contacts" :key="contact.id">
+                    <li
+                        v-for="contact in previewResult.contacts"
+                        :key="contact.id"
+                    >
                         {{ contact.name }} — {{ contact.email }}
                     </li>
                 </ul>
