@@ -4,6 +4,7 @@ import Heading from '@/components/Heading.vue';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { index } from '@/routes/campaigns';
+import { index as blastsIndex } from '@/routes/campaigns/blasts';
 import { index as contactsIndex } from '@/routes/campaigns/contacts';
 import { index as segmentsIndex } from '@/routes/campaigns/segments';
 
@@ -89,6 +90,21 @@ defineOptions({
                         <span class="font-medium">Segments</span>
                         <span class="text-sm text-muted-foreground">
                             Build and preview saved contact filters.
+                        </span>
+                    </Card>
+                </Link>
+
+                <Link
+                    :href="blastsIndex(campaign.slug)"
+                    class="block"
+                    data-test="blasts-link"
+                >
+                    <Card
+                        class="flex flex-col gap-1 p-4 transition-colors hover:border-primary"
+                    >
+                        <span class="font-medium">Blasts</span>
+                        <span class="text-sm text-muted-foreground">
+                            Compose draft emails targeting a segment.
                         </span>
                     </Card>
                 </Link>
