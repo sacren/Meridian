@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BlastController;
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\SegmentController;
@@ -45,6 +46,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::delete('campaigns/{campaign}/segments/{segment}', [SegmentController::class, 'destroy'])
             ->name('campaigns.segments.destroy');
+
+        Route::get('campaigns/{campaign}/blasts', [BlastController::class, 'index'])
+            ->name('campaigns.blasts.index');
+
+        Route::post('campaigns/{campaign}/blasts', [BlastController::class, 'store'])
+            ->name('campaigns.blasts.store');
+
+        Route::put('campaigns/{campaign}/blasts/{blast}', [BlastController::class, 'update'])
+            ->name('campaigns.blasts.update');
+
+        Route::delete('campaigns/{campaign}/blasts/{blast}', [BlastController::class, 'destroy'])
+            ->name('campaigns.blasts.destroy');
     });
 });
 
