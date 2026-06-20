@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Enums\BlastStatus;
+use App\Policies\BlastPolicy;
 use Database\Factories\BlastFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * is chosen, and it is nulled (not cascaded) when the target segment is deleted.
  */
 #[Fillable(['subject', 'body', 'status', 'segment_id'])]
+#[UsePolicy(BlastPolicy::class)]
 class Blast extends Model
 {
     /** @use HasFactory<BlastFactory> */
