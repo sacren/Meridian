@@ -31,7 +31,7 @@ test('a member can list only the blasts of the route campaign', function () {
     $this->actingAs($viewer)
         ->get(route('campaigns.blasts.index', $campaign))
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('Blasts/Index', false)
+            ->component('Blasts/Index')
             ->has('blasts.data', 2)
             ->has('segments')
         );
