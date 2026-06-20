@@ -61,4 +61,14 @@ class Campaign extends Model
     {
         return $this->hasMany(Segment::class);
     }
+
+    /**
+     * The blasts that belong to this campaign.
+     *
+     * @return HasMany<Blast, $this>
+     */
+    public function blasts(): HasMany
+    {
+        return $this->hasMany(Blast::class);
+    }
 }
