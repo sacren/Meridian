@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\TokenController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -21,7 +22,10 @@ Route::get('/user', function (Request $request) {
 Route::prefix('v1')
     ->middleware('throttle:api')
     ->group(function () {
+        Route::post('/tokens', [TokenController::class, 'store']);
+
         Route::middleware('auth:sanctum')->group(function () {
             Route::get('/user', fn (Request $request) => $request->user());
+            Route::delete('/tokens', [TokenController::class, 'destroy']);
         });
     });
