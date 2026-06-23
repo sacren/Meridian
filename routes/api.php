@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\CampaignController;
 use App\Http\Controllers\Api\V1\TokenController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -27,5 +28,9 @@ Route::prefix('v1')
         Route::middleware('auth:sanctum')->group(function () {
             Route::get('/user', fn (Request $request) => $request->user());
             Route::delete('/tokens', [TokenController::class, 'destroy']);
+
+            Route::get('/campaigns', [CampaignController::class, 'index']);
+            Route::get('/campaigns/{campaign}', [CampaignController::class, 'show'])
+                ->middleware('campaign.access');
         });
     });
