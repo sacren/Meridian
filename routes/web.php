@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\BlastController;
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\ContactController;
@@ -10,6 +11,13 @@ Route::inertia('/', 'Welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+
+    // The API console: a session-authed page (and its token-minting endpoint) that
+    // drives the v1 REST API over HTTP. Token issuance is not campaign-scoped, so
+    // these sit outside the campaign.access group below.
+    Route::get('api-demo', [ApiTokenController::class, 'create'])->name('api-token.create');
+
+    Route::post('api-demo/token', [ApiTokenController::class, 'store'])->name('api-token.generate');
 
     Route::get('campaigns', [CampaignController::class, 'index'])->name('campaigns.index');
 
