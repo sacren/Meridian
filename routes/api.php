@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\CampaignController;
+use App\Http\Controllers\Api\V1\ContactController;
 use App\Http\Controllers\Api\V1\TokenController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -32,5 +33,12 @@ Route::prefix('v1')
             Route::get('/campaigns', [CampaignController::class, 'index']);
             Route::get('/campaigns/{campaign}', [CampaignController::class, 'show'])
                 ->middleware('campaign.access');
+
+            Route::middleware('campaign.access')->scopeBindings()->group(function () {
+                Route::get('/campaigns/{campaign}/contacts', [ContactController::class, 'index']);
+                Route::post('/campaigns/{campaign}/contacts', [ContactController::class, 'store']);
+                Route::put('/campaigns/{campaign}/contacts/{contact}', [ContactController::class, 'update']);
+                Route::delete('/campaigns/{campaign}/contacts/{contact}', [ContactController::class, 'destroy']);
+            });
         });
     });
