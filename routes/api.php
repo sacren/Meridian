@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\BlastController;
 use App\Http\Controllers\Api\V1\CampaignController;
 use App\Http\Controllers\Api\V1\ContactController;
 use App\Http\Controllers\Api\V1\SegmentController;
@@ -46,6 +47,11 @@ Route::prefix('v1')
                 Route::post('/campaigns/{campaign}/segments/preview', [SegmentController::class, 'preview']);
                 Route::put('/campaigns/{campaign}/segments/{segment}', [SegmentController::class, 'update']);
                 Route::delete('/campaigns/{campaign}/segments/{segment}', [SegmentController::class, 'destroy']);
+
+                Route::get('/campaigns/{campaign}/blasts', [BlastController::class, 'index']);
+                Route::post('/campaigns/{campaign}/blasts', [BlastController::class, 'store']);
+                Route::put('/campaigns/{campaign}/blasts/{blast}', [BlastController::class, 'update']);
+                Route::delete('/campaigns/{campaign}/blasts/{blast}', [BlastController::class, 'destroy']);
             });
         });
     });
