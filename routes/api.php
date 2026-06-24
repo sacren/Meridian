@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\CampaignController;
 use App\Http\Controllers\Api\V1\ContactController;
+use App\Http\Controllers\Api\V1\SegmentController;
 use App\Http\Controllers\Api\V1\TokenController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -39,6 +40,12 @@ Route::prefix('v1')
                 Route::post('/campaigns/{campaign}/contacts', [ContactController::class, 'store']);
                 Route::put('/campaigns/{campaign}/contacts/{contact}', [ContactController::class, 'update']);
                 Route::delete('/campaigns/{campaign}/contacts/{contact}', [ContactController::class, 'destroy']);
+
+                Route::get('/campaigns/{campaign}/segments', [SegmentController::class, 'index']);
+                Route::post('/campaigns/{campaign}/segments', [SegmentController::class, 'store']);
+                Route::post('/campaigns/{campaign}/segments/preview', [SegmentController::class, 'preview']);
+                Route::put('/campaigns/{campaign}/segments/{segment}', [SegmentController::class, 'update']);
+                Route::delete('/campaigns/{campaign}/segments/{segment}', [SegmentController::class, 'destroy']);
             });
         });
     });
