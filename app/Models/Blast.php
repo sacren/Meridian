@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * An email composed within a campaign and aimed at a segment of its contacts.
@@ -53,5 +54,15 @@ class Blast extends Model
     public function segment(): BelongsTo
     {
         return $this->belongsTo(Segment::class);
+    }
+
+    /**
+     * The per-recipient delivery records produced when this blast is sent.
+     *
+     * @return HasMany<BlastRecipient, $this>
+     */
+    public function recipients(): HasMany
+    {
+        return $this->hasMany(BlastRecipient::class);
     }
 }
