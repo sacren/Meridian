@@ -33,4 +33,12 @@ class BlastFactory extends Factory
             ]),
         ];
     }
+
+    /**
+     * A blast that has left Draft and is mid-send, so it is read-only.
+     */
+    public function sending(): static
+    {
+        return $this->state(['status' => BlastStatus::Sending]);
+    }
 }

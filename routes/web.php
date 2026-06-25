@@ -66,6 +66,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::delete('campaigns/{campaign}/blasts/{blast}', [BlastController::class, 'destroy'])
             ->name('campaigns.blasts.destroy');
+
+        Route::post('campaigns/{campaign}/blasts/{blast}/send', [BlastController::class, 'send'])
+            ->name('campaigns.blasts.send');
     });
 });
 

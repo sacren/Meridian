@@ -2,16 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\BlastStatus;
+use App\Enums\DeliveryStatus;
 use App\Http\Requests\StoreBlastRequest;
 use App\Http\Requests\UpdateBlastRequest;
+use App\Jobs\SendBlastRecipient;
 use App\Models\Blast;
+use App\Models\BlastRecipient;
 use App\Models\Campaign;
+use App\Models\Contact;
 use App\Models\Segment;
+use App\Segments\SegmentEvaluator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -68,6 +75,50 @@ class BlastController extends Controller
         $this->authorize('delete', $blast);
 
         $blast->delete();
+
+        return to_route('campaigns.blasts.index', $campaign);
+    }
+
+    /**
+     * Send the blast to its target segment's audience.
+     *
+     * Sending is send-once and guarded twice over: the policy's `send` gate
+     * enforces ManageContent and a still-Draft status, and the action additionally
+     * requires a target segment. The segment's audience is resolved through the
+     * {@see SegmentEvaluator} against the campaign's contacts; one pending delivery
+     * row is written per recipient and the blast is moved to Sending, all in a
+     * transaction. Only once that has committed is a {@see SendBlastRecipient} job
+     * dispatched per row, so no job can run before its delivery exists.
+     */
+    public function send(Request $request, Campaign $campaign, Blast $blast, SegmentEvaluator $evaluator): RedirectResponse
+    {
+        $this->authorize('send', $blast);
+
+        if ($blast->segment === null) {
+            return back()->with('error', 'Choose a target segment before sending this blast.');
+        }
+
+        $audience = $evaluator->evaluate(
+            $blast->segment->criteria,
+            $campaign->contacts()->get(),
+        );
+
+        $recipients = DB::transaction(function () use ($blast, $audience): array {
+            $rows = $audience
+                ->map(fn (Contact $contact): BlastRecipient => $blast->recipients()->create([
+                    'contact_id' => $contact->id,
+                    'status' => DeliveryStatus::Pending,
+                ]))
+                ->all();
+
+            $blast->update(['status' => BlastStatus::Sending]);
+
+            return $rows;
+        });
+
+        foreach ($recipients as $recipient) {
+            SendBlastRecipient::dispatch($recipient);
+        }
 
         return to_route('campaigns.blasts.index', $campaign);
     }
