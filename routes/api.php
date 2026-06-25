@@ -5,12 +5,21 @@ use App\Http\Controllers\Api\V1\CampaignController;
 use App\Http\Controllers\Api\V1\ContactController;
 use App\Http\Controllers\Api\V1\SegmentController;
 use App\Http\Controllers\Api\V1\TokenController;
+use App\Http\Controllers\EmailWebhookController;
+use App\Http\Middleware\VerifyEmailWebhookSignature;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+
+// The inbound provider webhook: a public, session-less endpoint verified by an
+// HMAC signature (not Sanctum, not campaign.access). It lives here so it inherits
+// the forced-JSON error rendering for api/* and carries no CSRF token requirement.
+Route::post('/webhooks/email', [EmailWebhookController::class, 'store'])
+    ->middleware(VerifyEmailWebhookSignature::class)
+    ->name('webhooks.email');
 
 /*
 |--------------------------------------------------------------------------

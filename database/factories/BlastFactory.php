@@ -41,4 +41,12 @@ class BlastFactory extends Factory
     {
         return $this->state(['status' => BlastStatus::Sending]);
     }
+
+    /**
+     * A blast whose fan-out has settled as sent.
+     */
+    public function sent(): static
+    {
+        return $this->state(['status' => BlastStatus::Sent]);
+    }
 }
