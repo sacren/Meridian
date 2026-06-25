@@ -2,6 +2,7 @@
 
 use App\Enums\Role;
 use App\Models\Blast;
+use App\Models\BlastRecipient;
 use App\Models\Campaign;
 use App\Models\Segment;
 use App\Models\User;
@@ -41,10 +42,47 @@ test('the blast index renders the page with the paginated blast prop shape', fun
                 ->where('status', 'draft')
                 ->where('segment_id', $segment->id)
                 ->where('segment.name', 'Gmail users')
+                ->where('recipients_count', 0)
+                ->where('sent_recipients_count', 0)
                 ->etc()
             )
             ->has('blasts.links')
             ->where('blasts.total', 1)
+        );
+});
+
+test('the blast index counts each blast\'s recipients and the subset already sent', function () {
+    $campaign = Campaign::factory()->create();
+    $viewer = blastPageMember($campaign, Role::Viewer);
+    $blast = Blast::factory()->for($campaign)->create(['status' => 'sending']);
+    BlastRecipient::factory()->for($blast)->count(2)->sent()->create();
+    BlastRecipient::factory()->for($blast)->failed()->create();
+
+    $this->actingAs($viewer)
+        ->get(route('campaigns.blasts.index', $campaign))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('blasts.data', 1, fn (AssertableInertia $blast) => $blast
+                ->where('status', 'sending')
+                ->where('recipients_count', 3)
+                ->where('sent_recipients_count', 2)
+                ->etc()
+            )
+        );
+});
+
+test('the blast index tells a manager they may manage content but a viewer they may not', function () {
+    $campaign = Campaign::factory()->create();
+
+    $this->actingAs(blastPageMember($campaign, Role::Staffer))
+        ->get(route('campaigns.blasts.index', $campaign))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('canManageContent', true)
+        );
+
+    $this->actingAs(blastPageMember($campaign, Role::Viewer))
+        ->get(route('campaigns.blasts.index', $campaign))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('canManageContent', false)
         );
 });
 

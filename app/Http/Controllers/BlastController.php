@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\BlastStatus;
+use App\Enums\Capability;
 use App\Enums\DeliveryStatus;
 use App\Http\Requests\StoreBlastRequest;
 use App\Http\Requests\UpdateBlastRequest;
@@ -40,6 +41,7 @@ class BlastController extends Controller
             'campaign' => $campaign->only(['id', 'name', 'slug']),
             'blasts' => $this->paginatedBlasts($campaign),
             'segments' => $this->targetableSegments($campaign),
+            'canManageContent' => $request->user()?->roleIn($campaign)?->can(Capability::ManageContent) ?? false,
         ]);
     }
 
@@ -126,7 +128,10 @@ class BlastController extends Controller
     /**
      * The campaign's blasts, paginated and shaped for the index prop.
      *
-     * The target segment is eager-loaded so each row can name it without an N+1.
+     * The target segment is eager-loaded so each row can name it without an N+1,
+     * and the recipient totals are counted alongside — the whole audience and the
+     * subset the provider has accepted — so a row can show delivery progress
+     * (e.g. "12/15 sent") without loading the delivery rows themselves.
      *
      * @return LengthAwarePaginator<int, array<string, mixed>>
      */
@@ -134,6 +139,10 @@ class BlastController extends Controller
     {
         return $campaign->blasts()
             ->with('segment:id,name')
+            ->withCount([
+                'recipients',
+                'recipients as sent_recipients_count' => fn ($query) => $query->where('status', DeliveryStatus::Sent),
+            ])
             ->latest()
             ->paginate(15)
             ->through(fn (Blast $blast): array => [
@@ -143,6 +152,8 @@ class BlastController extends Controller
                 'status' => $blast->status->value,
                 'segment_id' => $blast->segment_id,
                 'segment' => $blast->segment?->only(['id', 'name']),
+                'recipients_count' => $blast->recipients_count,
+                'sent_recipients_count' => $blast->sent_recipients_count,
             ]);
     }
 

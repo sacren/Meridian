@@ -22,13 +22,22 @@ type SegmentOption = {
     name: string;
 };
 
+type BlastStatus = 'draft' | 'sending' | 'sent' | 'failed';
+
 type Blast = {
     id: number;
     subject: string;
     body: string;
-    status: string;
+    status: BlastStatus;
     segment_id: number | null;
     segment: SegmentOption | null;
+    recipients_count: number;
+    sent_recipients_count: number;
+};
+
+type StatusBadge = {
+    variant: 'default' | 'secondary' | 'destructive' | 'outline';
+    class?: string;
 };
 
 type PaginationLink = {
@@ -47,7 +56,24 @@ const props = defineProps<{
     campaign: Campaign;
     blasts: Paginator<Blast>;
     segments: SegmentOption[];
+    canManageContent: boolean;
 }>();
+
+// A blast is send-once: it is composable only while Draft and becomes read-only
+// the moment it leaves that state, mirroring the server-side policy lock so the
+// UI never offers an action the server would reject.
+const statusBadges: Record<BlastStatus, StatusBadge> = {
+    draft: { variant: 'secondary' },
+    sending: {
+        variant: 'outline',
+        class: 'animate-pulse text-muted-foreground',
+    },
+    sent: {
+        variant: 'default',
+        class: 'border-transparent bg-green-600 text-white',
+    },
+    failed: { variant: 'destructive' },
+};
 
 defineOptions({
     layout: {
@@ -109,6 +135,24 @@ function submit(): void {
 function targetName(blast: Blast): string {
     return blast.segment?.name ?? 'No target';
 }
+
+function isDraft(blast: Blast): boolean {
+    return blast.status === 'draft';
+}
+
+// A Draft may be sent only once it has a target and the caller can manage
+// content; the button is otherwise hidden rather than shown-then-rejected.
+function canSend(blast: Blast): boolean {
+    return (
+        props.canManageContent && isDraft(blast) && blast.segment_id !== null
+    );
+}
+
+function send(blast: Blast): void {
+    router.post(BlastController.send.url([props.campaign.slug, blast.id]), {
+        preserveScroll: true,
+    });
+}
 </script>
 
 <template>
@@ -118,7 +162,7 @@ function targetName(blast: Blast): string {
         <div class="flex items-center justify-between gap-3">
             <Heading
                 :title="`${campaign.name} blasts`"
-                :description="`${blasts.total} draft blast(s) in this campaign.`"
+                :description="`${blasts.total} blast(s) in this campaign.`"
             />
             <Link
                 :href="dashboard(campaign.slug)"
@@ -152,13 +196,42 @@ function targetName(blast: Blast): string {
                             {{ targetName(blast) }}
                         </td>
                         <td class="px-4 py-2">
-                            <Badge variant="secondary" class="capitalize">
-                                {{ blast.status }}
-                            </Badge>
+                            <div class="flex flex-col items-start gap-1">
+                                <Badge
+                                    :variant="
+                                        statusBadges[blast.status].variant
+                                    "
+                                    :class="statusBadges[blast.status].class"
+                                    class="capitalize"
+                                    :data-test="`blast-status-${blast.id}`"
+                                >
+                                    {{ blast.status }}
+                                </Badge>
+                                <span
+                                    v-if="blast.recipients_count > 0"
+                                    class="text-xs text-muted-foreground"
+                                    :data-test="`blast-sent-count-${blast.id}`"
+                                >
+                                    {{ blast.sent_recipients_count }}/{{
+                                        blast.recipients_count
+                                    }}
+                                    sent
+                                </span>
+                            </div>
                         </td>
                         <td class="px-4 py-2">
                             <div class="flex justify-end gap-2">
                                 <Button
+                                    v-if="canSend(blast)"
+                                    type="button"
+                                    size="sm"
+                                    :data-test="`send-blast-${blast.id}`"
+                                    @click="send(blast)"
+                                >
+                                    Send
+                                </Button>
+                                <Button
+                                    v-if="isDraft(blast)"
                                     variant="outline"
                                     size="sm"
                                     @click="startEdit(blast)"
@@ -166,6 +239,7 @@ function targetName(blast: Blast): string {
                                     Edit
                                 </Button>
                                 <Button
+                                    v-if="isDraft(blast)"
                                     type="button"
                                     variant="destructive"
                                     size="sm"
@@ -181,6 +255,12 @@ function targetName(blast: Blast): string {
                                 >
                                     Delete
                                 </Button>
+                                <span
+                                    v-if="!isDraft(blast)"
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    Read-only
+                                </span>
                             </div>
                         </td>
                     </tr>
