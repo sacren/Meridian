@@ -71,4 +71,14 @@ class Campaign extends Model
     {
         return $this->hasMany(Blast::class);
     }
+
+    /**
+     * The CSV contact imports run against this campaign.
+     *
+     * @return HasMany<ContactImport, $this>
+     */
+    public function contactImports(): HasMany
+    {
+        return $this->hasMany(ContactImport::class);
+    }
 }
