@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\BlastController;
+use App\Http\Controllers\CampaignAnalyticsController;
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\SegmentController;
@@ -26,6 +27,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('campaigns/{campaign}', [CampaignController::class, 'dashboard'])
         ->middleware('campaign.access')
         ->name('campaigns.dashboard');
+
+    Route::get('campaigns/{campaign}/analytics', [CampaignAnalyticsController::class, 'index'])
+        ->middleware('campaign.access')
+        ->name('campaigns.analytics.index');
 
     Route::middleware('campaign.access')->scopeBindings()->group(function () {
         Route::get('campaigns/{campaign}/contacts', [ContactController::class, 'index'])

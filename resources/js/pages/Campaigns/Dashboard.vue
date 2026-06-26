@@ -4,6 +4,7 @@ import Heading from '@/components/Heading.vue';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { index } from '@/routes/campaigns';
+import { index as analyticsIndex } from '@/routes/campaigns/analytics';
 import { index as blastsIndex } from '@/routes/campaigns/blasts';
 import { index as contactsIndex } from '@/routes/campaigns/contacts';
 import { index as segmentsIndex } from '@/routes/campaigns/segments';
@@ -105,6 +106,21 @@ defineOptions({
                         <span class="font-medium">Blasts</span>
                         <span class="text-sm text-muted-foreground">
                             Compose draft emails targeting a segment.
+                        </span>
+                    </Card>
+                </Link>
+
+                <Link
+                    :href="analyticsIndex(campaign.slug)"
+                    class="block"
+                    data-test="analytics-link"
+                >
+                    <Card
+                        class="flex flex-col gap-1 p-4 transition-colors hover:border-primary"
+                    >
+                        <span class="font-medium">Analytics</span>
+                        <span class="text-sm text-muted-foreground">
+                            Track delivery and engagement across blasts.
                         </span>
                     </Card>
                 </Link>

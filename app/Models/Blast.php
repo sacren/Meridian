@@ -65,4 +65,15 @@ class Blast extends Model
     {
         return $this->hasMany(BlastRecipient::class);
     }
+
+    /**
+     * The inbound provider events (opens, clicks, bounces) reported against this
+     * blast's deliveries — the raw material the campaign analytics rollups count.
+     *
+     * @return HasMany<EmailEvent, $this>
+     */
+    public function events(): HasMany
+    {
+        return $this->hasMany(EmailEvent::class);
+    }
 }
