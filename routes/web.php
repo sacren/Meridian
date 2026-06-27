@@ -6,6 +6,7 @@ use App\Http\Controllers\CampaignAnalyticsController;
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ContactExportController;
+use App\Http\Controllers\ContactImportController;
 use App\Http\Controllers\SegmentController;
 use Illuminate\Support\Facades\Route;
 
@@ -39,6 +40,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('campaigns/{campaign}/contacts/export', ContactExportController::class)
             ->name('campaigns.contacts.export');
+
+        Route::post('campaigns/{campaign}/contacts/import', [ContactImportController::class, 'store'])
+            ->name('campaigns.contacts.import');
 
         Route::post('campaigns/{campaign}/contacts', [ContactController::class, 'store'])
             ->name('campaigns.contacts.store');
