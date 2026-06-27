@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { Form, Head, Link, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { onUnmounted, ref, watch } from 'vue';
 import ContactController from '@/actions/App/Http/Controllers/ContactController';
+import ContactExportController from '@/actions/App/Http/Controllers/ContactExportController';
+import ContactImportController from '@/actions/App/Http/Controllers/ContactImportController';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -49,10 +52,23 @@ type Filters = {
     direction: 'asc' | 'desc';
 };
 
+type ImportStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+type LatestImport = {
+    id: number;
+    status: ImportStatus;
+    imported_count: number;
+    failed_count: number;
+    errors: Array<{ row: number; reason: string }> | null;
+    completed_at: string | null;
+};
+
 const props = defineProps<{
     campaign: Campaign;
     contacts: Paginator<Contact>;
     filters: Filters;
+    canManageContent: boolean;
+    latestImport: LatestImport | null;
 }>();
 
 defineOptions({
@@ -63,6 +79,59 @@ defineOptions({
 
 const search = ref(props.filters.search);
 const editing = ref<Contact | null>(null);
+
+type StatusBadge = {
+    variant: 'default' | 'secondary' | 'destructive' | 'outline';
+    class?: string;
+};
+
+// The import settles pending -> processing -> completed/failed on the queue; the
+// badge mirrors that lifecycle so the surface reads the same state the server holds.
+const importStatusBadges: Record<ImportStatus, StatusBadge> = {
+    pending: { variant: 'secondary', class: 'animate-pulse' },
+    processing: { variant: 'secondary', class: 'animate-pulse' },
+    completed: {
+        variant: 'default',
+        class: 'border-transparent bg-green-600 text-white',
+    },
+    failed: { variant: 'destructive' },
+};
+
+/** An import that has not yet settled is still being worked by the queue. */
+function isSettling(status: ImportStatus | undefined): boolean {
+    return status === 'pending' || status === 'processing';
+}
+
+// While the latest import is still settling, poll the status prop (and the
+// contact list) so the surface updates live as the user's queue worker finishes
+// the job, without the user needing to refresh. Polling stops the moment it
+// settles or the page unmounts.
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+function stopPolling(): void {
+    if (pollTimer !== null) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+    }
+}
+
+watch(
+    () => props.latestImport?.status,
+    (status) => {
+        if (isSettling(status)) {
+            if (pollTimer === null) {
+                pollTimer = setInterval(() => {
+                    router.reload({ only: ['latestImport', 'contacts'] });
+                }, 3000);
+            }
+        } else {
+            stopPolling();
+        }
+    },
+    { immediate: true },
+);
+
+onUnmounted(stopPolling);
 
 /**
  * Reload the index preserving the current sort, applying the typed search term.
@@ -127,6 +196,95 @@ function sortIndicator(column: string): string {
                 Back to dashboard
             </Link>
         </div>
+
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <Button
+                as="a"
+                :href="ContactExportController.url({ campaign: campaign.slug })"
+                variant="outline"
+                data-test="export-contacts-link"
+            >
+                Export CSV
+            </Button>
+
+            <Form
+                v-if="canManageContent"
+                v-bind="ContactImportController.store.form(campaign.slug)"
+                reset-on-success
+                v-slot="{ errors, processing }"
+            >
+                <div class="flex items-center gap-2">
+                    <input
+                        type="file"
+                        name="file"
+                        accept=".csv,text/csv,text/plain"
+                        required
+                        data-test="contact-import-input"
+                        class="h-9 max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs file:mr-3 file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                    />
+                    <Button
+                        type="submit"
+                        variant="secondary"
+                        :disabled="processing"
+                        data-test="import-contacts-button"
+                    >
+                        Import CSV
+                    </Button>
+                </div>
+                <InputError :message="errors.file" class="mt-1" />
+            </Form>
+        </div>
+
+        <Card
+            v-if="latestImport"
+            class="max-w-md space-y-3 p-4"
+            data-test="import-status"
+        >
+            <div class="flex items-center justify-between gap-3">
+                <Heading
+                    variant="small"
+                    title="Latest import"
+                    description="The most recent CSV import for this campaign."
+                />
+                <Badge
+                    :variant="importStatusBadges[latestImport.status].variant"
+                    :class="importStatusBadges[latestImport.status].class"
+                    class="capitalize"
+                    data-test="import-status-badge"
+                >
+                    {{ latestImport.status }}
+                </Badge>
+            </div>
+
+            <p class="text-sm text-muted-foreground">
+                <span data-test="import-imported-count">{{
+                    latestImport.imported_count
+                }}</span>
+                imported,
+                <span data-test="import-failed-count">{{
+                    latestImport.failed_count
+                }}</span>
+                failed.
+            </p>
+
+            <div
+                v-if="latestImport.errors?.length"
+                class="space-y-1"
+                data-test="import-errors"
+            >
+                <p class="text-sm font-medium">Skipped rows</p>
+                <ul class="space-y-0.5 text-sm text-muted-foreground">
+                    <li
+                        v-for="(error, i) in latestImport.errors"
+                        :key="i"
+                        class="flex gap-2"
+                    >
+                        <span class="font-medium">Row {{ error.row }}:</span>
+                        <span>{{ error.reason }}</span>
+                    </li>
+                </ul>
+            </div>
+        </Card>
 
         <form class="flex max-w-sm gap-2" @submit.prevent="applySearch">
             <Input

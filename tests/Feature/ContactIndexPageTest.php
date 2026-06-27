@@ -1,8 +1,10 @@
 <?php
 
+use App\Enums\ImportStatus;
 use App\Enums\Role;
 use App\Models\Campaign;
 use App\Models\Contact;
+use App\Models\ContactImport;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
@@ -68,5 +70,61 @@ test('the contact index paginates at fifteen per page', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('contacts.data', 15)
             ->where('contacts.total', 20)
+        );
+});
+
+test('the contact index gates the import affordance by manage-content on the role', function (Role $role, bool $canManage) {
+    $campaign = Campaign::factory()->create();
+    $member = contactPageMember($campaign, $role);
+
+    $this->actingAs($member)
+        ->get(route('campaigns.contacts.index', $campaign))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('canManageContent', $canManage)
+        );
+})->with([
+    'owner manages content' => [Role::Owner, true],
+    'staffer manages content' => [Role::Staffer, true],
+    'viewer does not' => [Role::Viewer, false],
+]);
+
+test('the contact index carries a null latest import when the campaign has none', function () {
+    $campaign = Campaign::factory()->create();
+    $viewer = contactPageMember($campaign, Role::Viewer);
+
+    $this->actingAs($viewer)
+        ->get(route('campaigns.contacts.index', $campaign))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('latestImport', null)
+        );
+});
+
+test('the contact index carries the most recent import shaped for the status surface', function () {
+    $campaign = Campaign::factory()->create();
+    $viewer = contactPageMember($campaign, Role::Viewer);
+
+    ContactImport::factory()->for($campaign)->create([
+        'status' => ImportStatus::Completed,
+        'imported_count' => 3,
+        'failed_count' => 1,
+        'errors' => [['row' => 2, 'reason' => 'The email field is required.']],
+        'created_at' => now()->subMinute(),
+    ]);
+    $latest = ContactImport::factory()->for($campaign)->create([
+        'status' => ImportStatus::Processing,
+        'imported_count' => 5,
+        'failed_count' => 0,
+        'errors' => null,
+        'created_at' => now(),
+    ]);
+
+    $this->actingAs($viewer)
+        ->get(route('campaigns.contacts.index', $campaign))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('latestImport.id', $latest->id)
+            ->where('latestImport.status', 'processing')
+            ->where('latestImport.imported_count', 5)
+            ->where('latestImport.failed_count', 0)
+            ->where('latestImport.errors', null)
         );
 });

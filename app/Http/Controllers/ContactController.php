@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Capability;
 use App\Http\Requests\StoreContactRequest;
 use App\Http\Requests\UpdateContactRequest;
 use App\Models\Campaign;
@@ -64,7 +65,36 @@ class ContactController extends Controller
                 'sort' => $sortColumn,
                 'direction' => $direction,
             ],
+            'canManageContent' => $request->user()?->roleIn($campaign)?->can(Capability::ManageContent) ?? false,
+            'latestImport' => $this->latestImport($campaign),
         ]);
+    }
+
+    /**
+     * The campaign's most-recent contact import, shaped for the status surface.
+     *
+     * Only the fields the surface renders are exposed; null when the campaign has
+     * never been imported into. The status enum and completion timestamp are
+     * flattened to primitives (a string and an ISO-8601 string) the page consumes.
+     *
+     * @return array<string, mixed>|null
+     */
+    protected function latestImport(Campaign $campaign): ?array
+    {
+        $import = $campaign->contactImports()->latest()->first();
+
+        if ($import === null) {
+            return null;
+        }
+
+        return [
+            'id' => $import->id,
+            'status' => $import->status->value,
+            'imported_count' => $import->imported_count,
+            'failed_count' => $import->failed_count,
+            'errors' => $import->errors,
+            'completed_at' => $import->completed_at?->toIso8601String(),
+        ];
     }
 
     /**
