@@ -1,0 +1,3 @@
+name,email,phone,custom_fields
+Grace Hopper,grace@example.com,555-0100,"{""tier"":""gold""}"
+Alan Turing,alan@example.com,,
