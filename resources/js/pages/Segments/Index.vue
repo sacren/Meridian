@@ -153,6 +153,13 @@ function submit(): void {
 /**
  * Run the live preview for the criteria currently in the builder. The preview
  * prop comes back via a partial reload, leaving the form state untouched.
+ *
+ * `preserveUrl` is essential: the preview endpoint returns an Inertia render (to
+ * refresh the `preview` prop) rather than a redirect, so without it Inertia would
+ * point the browser URL at `.../segments/preview` — a POST-only route. A later
+ * validation failure (e.g. previewing an incomplete rule) redirects "back" to
+ * that URL, which Inertia follows with a GET, producing a 405. Pinning the URL to
+ * the segments page keeps every redirect landing on a GET-able route.
  */
 function runPreview(): void {
     router.post(
@@ -162,6 +169,7 @@ function runPreview(): void {
             only: ['preview'],
             preserveState: true,
             preserveScroll: true,
+            preserveUrl: true,
             onSuccess: () => {
                 previewResult.value = props.preview ?? null;
             },
