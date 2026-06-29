@@ -100,10 +100,10 @@ class BlastController extends Controller
             return back()->with('error', 'Choose a target segment before sending this blast.');
         }
 
-        $audience = $evaluator->evaluate(
+        $audience = $evaluator->apply(
+            $campaign->contacts(),
             $blast->segment->criteria,
-            $campaign->contacts()->get(),
-        );
+        )->get();
 
         $recipients = DB::transaction(function () use ($blast, $audience): array {
             $rows = $audience
