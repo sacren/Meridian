@@ -84,18 +84,19 @@ class SegmentController extends Controller
      */
     public function preview(PreviewSegmentRequest $request, Campaign $campaign, SegmentEvaluator $evaluator): Response
     {
-        $matches = $evaluator->evaluate(
-            $request->validated('criteria'),
-            $campaign->contacts()->orderBy('name')->get(),
-        );
+        $matched = $evaluator->apply($campaign->contacts(), $request->validated('criteria'));
+
+        $sample = (clone $matched)
+            ->orderBy('name')
+            ->limit(self::PREVIEW_LIMIT)
+            ->get();
 
         return Inertia::render('Segments/Index', [
             'campaign' => $campaign->only(['id', 'name', 'slug']),
             'segments' => $this->paginatedSegments($campaign),
             'preview' => [
-                'count' => $matches->count(),
-                'contacts' => $matches
-                    ->take(self::PREVIEW_LIMIT)
+                'count' => (clone $matched)->count(),
+                'contacts' => $sample
                     ->map(fn (Contact $contact): array => [
                         'id' => $contact->id,
                         'name' => $contact->name,

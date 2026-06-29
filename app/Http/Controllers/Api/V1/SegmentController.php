@@ -93,15 +93,17 @@ class SegmentController extends Controller
      */
     public function preview(PreviewSegmentRequest $request, Campaign $campaign, SegmentEvaluator $evaluator): JsonResponse
     {
-        $matches = $evaluator->evaluate(
-            $request->validated('criteria'),
-            $campaign->contacts()->orderBy('name')->get(),
-        );
+        $matched = $evaluator->apply($campaign->contacts(), $request->validated('criteria'));
+
+        $sample = (clone $matched)
+            ->orderBy('name')
+            ->limit(self::PREVIEW_LIMIT)
+            ->get();
 
         return response()->json([
             'data' => [
-                'count' => $matches->count(),
-                'contacts' => ContactResource::collection($matches->take(self::PREVIEW_LIMIT)),
+                'count' => (clone $matched)->count(),
+                'contacts' => ContactResource::collection($sample),
             ],
         ]);
     }
