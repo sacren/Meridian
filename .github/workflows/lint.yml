@@ -3,19 +3,13 @@ name: linter
 on:
   push:
     branches:
-      - develop
-      - main
-      - master
-      - workos
+      - 13.x-vue-8041
   pull_request:
     branches:
-      - develop
-      - main
-      - master
-      - workos
+      - 13.x-vue-8041
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   quality:
@@ -30,22 +24,39 @@ jobs:
         with:
           php-version: '8.4'
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: '10.24.0'
+
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: '22'
+          cache: pnpm
+
       - name: Install Dependencies
         run: |
-          composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
-          npm install
+          composer install -q --no-ansi --no-interaction --no-progress --prefer-dist
+          pnpm install --frozen-lockfile
 
-      - name: Run Pint
-        run: composer lint
+      - name: Copy Environment File
+        run: cp .env.example .env
 
-      - name: Format Frontend
-        run: npm run format
+      - name: Generate Application Key
+        run: php artisan key:generate
 
-      - name: Lint Frontend
-        run: npm run lint
+      - name: Generate Wayfinder Definitions
+        run: php artisan wayfinder:generate --with-form
 
-      # - name: Commit Changes
-      #   uses: stefanzweifel/git-auto-commit-action@v7
-      #   with:
-      #     commit_message: fix code style
-      #     commit_options: '--no-verify'
+      - name: Check Pint
+        run: composer lint:check
+
+      - name: Check Frontend Lint
+        run: pnpm run lint:check
+
+      - name: Check Frontend Formatting
+        run: pnpm run format:check
+
+      - name: Check Frontend Types
+        run: pnpm run types:check
