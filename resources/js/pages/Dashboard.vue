@@ -13,6 +13,7 @@ defineOptions({
         ],
     },
 });
+const _proof: number = 'this is not a number';
 </script>
 
 <template>
