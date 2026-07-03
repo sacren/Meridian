@@ -1,0 +1,147 @@
+name: e2e
+
+# Runs the Cypress end-to-end suite in CI over the full stack. Every step below
+# executes on the GitHub Actions runner (GitHub's world) — never on the local
+# Sail/Docker server. So PHP and Node are provisioned natively (setup-php /
+# pnpm/action-setup) and commands are bare `php` / `pnpm`; Sail and `docker
+# compose` are never invoked here. MySQL is a service container; MinIO is a
+# plain `docker run` because the `minio/minio` image needs a `server /data`
+# command that the `services:` syntax cannot supply.
+
+on:
+  push:
+    branches:
+      - 13.x-vue-8041
+  pull_request:
+    branches:
+      - 13.x-vue-8041
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+          --health-start-period=30s
+
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: testing
+      DB_USERNAME: root
+      DB_PASSWORD: password
+      QUEUE_CONNECTION: database
+      MAIL_MAILER: log
+      FILESYSTEM_DISK: s3
+      AWS_ACCESS_KEY_ID: sail
+      AWS_SECRET_ACCESS_KEY: password
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_BUCKET: campaign-nucleus
+      AWS_ENDPOINT: http://127.0.0.1:9000
+      AWS_USE_PATH_STYLE_ENDPOINT: true
+      APP_URL: http://127.0.0.1:8000
+      CYPRESS_baseUrl: http://127.0.0.1:8000
+      PHP_CLI_SERVER_WORKERS: 4
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@7c071dfe9dc99bdf297fa79cb49ea005b9fcadbc # v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql
+          tools: composer:v2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: '10.24.0'
+
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      # Start MinIO early via a plain `docker run` (the `services:` syntax cannot
+      # pass the required `server /data` command) so it is warm by the readiness
+      # gate below. Same image + credentials as the local Sail service.
+      - name: Start MinIO
+        run: >-
+          docker run -d --name minio
+          -p 9000:9000
+          -e MINIO_ROOT_USER=sail
+          -e MINIO_ROOT_PASSWORD=password
+          minio/minio:latest server /data
+
+      - name: Install Composer Dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Install Node Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Copy Environment File
+        run: cp .env.example .env
+
+      - name: Generate Application Key
+        run: php artisan key:generate
+
+      - name: Build Assets
+        run: pnpm run build
+
+      - name: Run Migrations
+        run: php artisan migrate --force
+
+      # Fail loudly if MinIO never answers — a missing/unreachable object store is
+      # the silent-storage failure the Storage stage taught us to surface.
+      - name: Wait for MinIO
+        run: curl --retry 30 --retry-delay 2 --retry-connrefused -sf http://127.0.0.1:9000/minio/health/live
+
+      # The app's own idempotent, config-derived bucket provisioner (mirrors local
+      # `sail up` provisioning); talks to MinIO through the s3 disk's own client.
+      - name: Ensure Storage Bucket
+        run: php artisan storage:ensure-bucket
+
+      # Background the app server. PHP_CLI_SERVER_WORKERS (job env) makes the
+      # built-in server multi-worker so Cypress's concurrent/polling requests do
+      # not stall a single-threaded server.
+      - name: Start Application Server
+        run: nohup php artisan serve --host=127.0.0.1 --port=8000 > storage/logs/serve.log 2>&1 &
+
+      # Background the queue worker to drain the database queue (ImportContacts +
+      # blast-send fan-out). This is a fresh CI-side worker on the ephemeral
+      # runner, not the local queue:listen — correct here, forbidden locally.
+      - name: Start Queue Worker
+        run: nohup php artisan queue:work --tries=1 > storage/logs/queue.log 2>&1 &
+
+      - name: Wait for Application Server
+        run: curl --retry 30 --retry-delay 2 --retry-connrefused -sf http://127.0.0.1:8000 > /dev/null
+
+      # Force the Cypress binary download: .npmrc sets ignore-scripts=true, so the
+      # `pnpm install` above does not run Cypress's postinstall.
+      - name: Install Cypress Binary
+        run: pnpm exec cypress install
+
+      # `cypress run` on Linux auto-manages Xvfb and uses the bundled Electron
+      # browser; CYPRESS_baseUrl (job env) points it at the backgrounded server.
+      - name: Run Cypress
+        run: pnpm exec cypress run
