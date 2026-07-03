@@ -56,13 +56,19 @@ jobs:
           tools: composer:v2
           coverage: xdebug
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: '10.24.0'
+
       - name: Setup Node
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: '22'
+          cache: pnpm
 
       - name: Install Node Dependencies
-        run: npm i
+        run: pnpm install --frozen-lockfile
 
       - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
@@ -74,7 +80,7 @@ jobs:
         run: php artisan key:generate
 
       - name: Build Assets
-        run: npm run build
+        run: pnpm run build
 
       - name: Tests
         run: ./vendor/bin/pest
